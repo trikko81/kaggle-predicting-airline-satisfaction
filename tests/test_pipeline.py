@@ -1,11 +1,12 @@
 import unittest
 import numpy as np
 import pandas as pd
-from pathlib import Path
+from src.folds import generate_stratified_folds
+from src.features import build_static_features
+from src.blend import rank_average, optimize_blend_weights
 
 class TestPipelineModules(unittest.TestCase):
     def setUp(self):
-        # Create minimal synthetic dataframe matching competition schema
         np.random.seed(42)
         n = 100
         self.dummy_train = pd.DataFrame({
@@ -36,9 +37,6 @@ class TestPipelineModules(unittest.TestCase):
         self.dummy_test = self.dummy_train.drop(columns=['satisfaction']).copy()
 
     def test_folds_and_features(self):
-        from src.folds import generate_stratified_folds
-        from src.features import build_static_features
-
         folds = generate_stratified_folds(self.dummy_train, n_splits=5, seed=42)
         self.assertEqual(len(folds), len(self.dummy_train))
         self.assertEqual(len(np.unique(folds)), 5)
@@ -46,8 +44,20 @@ class TestPipelineModules(unittest.TestCase):
         X_train, X_test = build_static_features(self.dummy_train, self.dummy_test)
         self.assertEqual(len(X_train), len(self.dummy_train))
         self.assertEqual(len(X_test), len(self.dummy_test))
-        # 63 static features (or 58 if clean prior is excluded without orig data)
-        self.assertGreaterEqual(X_train.shape[1], 55)
+        self.assertEqual(X_train.shape[1], 63)
+
+    def test_blend_functions(self):
+        y_true = np.random.randint(0, 2, 200)
+        p1 = np.clip(y_true * 0.8 + np.random.normal(0, 0.2, 200), 0, 1)
+        p2 = np.clip(y_true * 0.7 + np.random.normal(0, 0.3, 200), 0, 1)
+
+        rank_blend = rank_average([p1, p2])
+        self.assertEqual(len(rank_blend), 200)
+        self.assertTrue((rank_blend >= 0).all() and (rank_blend <= 1).all())
+
+        weights, best_auc = optimize_blend_weights(y_true, {'m1': p1, 'm2': p2})
+        self.assertAlmostEqual(sum(weights.values()), 1.0, places=4)
+        self.assertGreater(best_auc, 0.5)
 
 if __name__ == '__main__':
     unittest.main()
