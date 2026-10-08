@@ -1,0 +1,36 @@
+# Python environment & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Data and artifacts (keep repos lightweight)
+data/
+submissions/
+*.csv
+*.parquet
+*.feather
+*.pkl
+*.joblib
+
+# Models & Weights
+*.pt
+*.pth
+*.onnx
+*.bin
+
+# IDE & Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
